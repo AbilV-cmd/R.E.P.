@@ -1,1 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gym Tablet Logger</title>
+<style>
+/* General Styles */
+body, html {
+    margin:0;
+    padding:0;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    background:#f0f0f0;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+}
 
+.container {
+    width: 1024px;
+    height: 768px;
+    background: white;
+    border-radius: 24px;
+    padding: 30px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.08);
+    display:flex;
+    flex-direction: column;
+    align-items: center;
+    overflow: hidden;
+    position: relative;
+}
+
+h1,h2,h3 { margin: 10px 0; }
+button {
+    font-size: 28px;
+    padding: 20px 40px;
+    margin: 10px;
+    border-radius: 16px;
+    border: none;
+    cursor: pointer;
+    background: black;
+    color: white;
+}
+button.secondary { background:#ddd; color:black; }
+
+.grid { display:flex; gap:20px; flex-wrap:wrap; justify-content:center; }
+.machine-btn { padding:40px 60px; font-size:32px; border-radius:20px; cursor:pointer; }
+.keypad { display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; margin-top:10px; }
+.keypad button { width:100px; height:100px; font-size:36px; }
+#code-display, #sets-display, #reps-display, #weight-display { font-size:48px; letter-spacing:16px; margin:10px 0; text-align:center; }
+
+/* Pages */
+.page { display:none; width:100%; height:100%; flex-direction:column; align-items:center; justify-content:center; }
+.page.active { display:flex; }
+
+.input-group { margin:10px 0; width:80%; text-align:center; }
+.numeric-input { display:flex; flex-direction:column; align-items:center; }
+.numeric-input .keypad { margin-top:10px; }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+    <!-- Machine Select Page -->
+    <div id="page-machine" class="page active">
+        <h1>Select Machine</h1>
+        <div class="grid">
+            <button class="machine-btn" onclick="selectMachine('Leg Press')">Leg Press</button>
+            <button class="machine-btn" onclick="selectMachine('Bench Press')">Bench Press</button>
+            <button class="machine-btn" onclick="selectMachine('Lat Pulldown')">Lat Pulldown</button>
+        </div>
+    </div>
+
+    <!-- Login Page -->
+    <div id="page-login" class="page">
+        <h1>Enter 4-Digit Code</h1>
+        <div id="code-display">••••</div>
+        <div class="keypad" id="login-keypad"></div>
+    </div>
+
+    <!-- Workout Page -->
+    <div id="page-workout" class="page">
+        <h1 id="welcome"></h1>
+        <h2 id="machine-name"></h2>
+
+        <div class="input-group">
+            <label>Sets:</label>
+            <div class="numeric-input">
+                <div id="sets-display">0</div>
+                <div class="keypad" id="sets-keypad"></div>
+            </div>
+        </div>
+
+        <div class="input-group">
+            <label>Reps:</label>
+            <div class="numeric-input">
+                <div id="reps-display">0</div>
+                <div class="keypad" id="reps-keypad"></div>
+            </div>
+        </div>
+
+        <div class="input-group">
+            <label>Weight (lbs):</label>
+            <div class="numeric-input">
+                <div id="weight-display">0</div>
+                <div class="keypad" id="weight-keypad"></div>
+            </div>
+        </div>
+
+        <h3>1-Rep Max: <span id="oneRM">0</span> lbs</h3>
+        <button onclick="saveWorkout()">Save Workout</button>
+        <button onclick="logout()" class="secondary">Log Out</button>
+    </div>
+
+</div>
+
+<script>
+// ---------- Global ----------
+let selectedMachine = "";
+let enteredCode = "";
+const validCodes = { "1234": "Abil", "5678": "Maxwell" };
+let userName = "";
+
+// ---------- Page Control ----------
+function showPage(pageId) {
+    document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+    document.getElementById(pageId).classList.add("active");
+}
+
+// ---------- Machine Selection ----------
+function selectMachine(machine) {
+    selectedMachine = machine;
+    showPage("page-login");
+    initLoginKeypad();
+}
+
+// ---------- Login ----------
+function initLoginKeypad() {
+    const keypad = document.getElementById("login-keypad");
+    keypad.innerHTML = "";
+    for(let i=1;i<=9;i++) {
+        const btn=document.createElement("button");
+        btn.textContent=i;
+        btn.onclick=()=>{ enterDigit(i); };
+        keypad.appendChild(btn);
+    }
+    const clearBtn = document.createElement("button");
+    clearBtn.textContent="⌫"; clearBtn.onclick=()=>{ clearCode(); };
+    keypad.appendChild(clearBtn);
+    const zeroBtn = document.createElement("button");
+    zeroBtn.textContent="0"; zeroBtn.onclick=()=>{ enterDigit(0); };
+    keypad.appendChild(zeroBtn);
+    const okBtn = document.createElement("button");
+    okBtn.textContent="✔"; okBtn.onclick=()=>{ login(); };
+    keypad.appendChild(okBtn);
+}
+
+function enterDigit(d) {
+    if(enteredCode.length<4){ enteredCode+=d; updateCodeDisplay(); }
+}
+function clearCode(){ enteredCode=""; updateCodeDisplay(); }
+function updateCodeDisplay(){ document.getElementById("code-display").textContent=enteredCode.padEnd(4,"•"); }
+function login() {
+    if(enteredCode.length<4){ alert("Enter 4 digits!"); return; }
+    if(validCodes[enteredCode]){
+        userName = validCodes[enteredCode];
+        showPage("page-workout");
+        initWorkout();
+    } else { alert("Invalid code!"); clearCode(); }
+}
+
+// ---------- Workout ----------
+function initWorkout() {
+    document.getElementById("welcome").textContent=`Hi, ${userName}`;
+    document.getElementById("machine-name").textContent=selectedMachine;
+
+    createKeypad("sets");
+    createKeypad("reps");
+    createKeypad("weight");
+    update1RM();
+}
+
+function createKeypad(field){
+    const keypadContainer=document.getElementById(field+"-keypad");
+    const display=document.getElementById(field+"-display");
+    keypadContainer.innerHTML="";
+    for(let i=1;i<=9;i++){
+        const btn=document.createElement("button");
+        btn.textContent=i;
+        btn.onclick=()=>{ display.textContent=display.textContent==="0"?i:display.textContent+i; update1RM(); };
+        keypadContainer.appendChild(btn);
+    }
+    const zeroBtn=document.createElement("button");
+    zeroBtn.textContent="0"; zeroBtn.onclick=()=>{ display.textContent=display.textContent==="0"?"0":display.textContent+"0"; update1RM(); };
+    keypadContainer.appendChild(zeroBtn);
+    const clearBtn=document.createElement("button");
+    clearBtn.textContent="⌫"; clearBtn.onclick=()=>{ display.textContent="0"; update1RM(); };
+    keypadContainer.appendChild(clearBtn);
+}
+
+function update1RM(){
+    const sets=parseInt(document.getElementById("sets-display").textContent)||0;
+    const reps=parseInt(document.getElementById("reps-display").textContent)||0;
+    const weight=parseFloat(document.getElementById("weight-display").textContent)||0;
+    const oneRM=Math.round(weight*(1+reps/30));
+    document.getElementById("oneRM").textContent=oneRM||0;
+}
+
+// ---------- Save Workout ----------
+function saveWorkout(){
+    const sets=parseInt(document.getElementById("sets-display").textContent);
+    const reps=parseInt(document.getElementById("reps-display").textContent);
+    const weight=parseFloat(document.getElementById("weight-display").textContent);
+    const oneRM=Math.round(weight*(1+reps/30));
+    if(sets<=0 || reps<=0 || weight<=0){ alert("Enter valid values!"); return; }
+
+    const payload={ user:userName, machine:selectedMachine, sets, reps, weight, oneRM, date:new Date().toLocaleString() };
+
+    fetch("https://script.google.com/macros/s/AKfycbyLuqCOn_pvN4Vg6ttQzq1jmZ58Kn79gau3rZ3DpDXD5vWpMO683VsYKMn7xfeleWhfoA/exec",{
+        method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload)
+    }).then(res=>res.json())
+      .then(data=>{ alert("Workout saved!"); resetInputs(); })
+      .catch(err=>alert("Error sending data"));
+}
+
+function resetInputs(){
+    document.getElementById("sets-display").textContent="0";
+    document.getElementById("reps-display").textContent="0";
+    document.getElementById("weight-display").textContent="0";
+    update1RM();
+}
+
+function logout(){
+    enteredCode=""; userName=""; selectedMachine="";
+    showPage("page-machine");
+}
+</script>
+</body>
+</html>
