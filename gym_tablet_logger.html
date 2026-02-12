@@ -3,239 +3,201 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Gym Tablet Logger</title>
+<title>Smart Gym Tablet</title>
 <style>
-/* General Styles */
-body, html {
-    margin:0;
-    padding:0;
-    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-    background:#f0f0f0;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    height:100vh;
-}
+/* ===== GENERAL ===== */
+* {box-sizing:border-box;}
+html,body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f0f0f0;height:100%;display:flex;justify-content:center;align-items:center;}
+.container{width:1024px;height:768px;background:white;border-radius:24px;padding:30px;box-shadow:0 20px 60px rgba(0,0,0,0.08);display:flex;flex-direction:column;align-items:center;overflow:hidden;position:relative;}
+h1,h2,h3,h4{margin:8px 0;text-align:center;}
+button{border:none;border-radius:16px;padding:20px 40px;font-size:28px;cursor:pointer;background:black;color:white;transition:all 0.2s;}
+button.secondary{background:#ddd;color:black;}
+button:hover{transform:scale(1.05);}
+.grid{display:flex;gap:20px;flex-wrap:wrap;justify-content:center;}
+.machine-btn{padding:40px 60px;font-size:32px;border-radius:20px;cursor:pointer;transition:0.2s;}
+.machine-btn:hover{background:#222;color:#fff;transform:scale(1.05);}
+.keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px;}
+.keypad button{width:100px;height:100px;font-size:36px;border-radius:12px;}
+.page{display:none;width:100%;height:100%;flex-direction:column;align-items:center;justify-content:center;}
+.page.active{display:flex;}
+.input-group{margin:10px 0;width:80%;text-align:center;}
+.numeric-input{display:flex;flex-direction:column;align-items:center;}
+.numeric-input .keypad{margin-top:10px;}
+#code-display,#sets-display,#reps-display,#weight-display{font-size:48px;letter-spacing:16px;margin:10px 0;text-align:center;}
+#machine-gif{width:300px;height:200px;object-fit:contain;margin-top:20px;border-radius:12px;}
+#workout-history{margin-top:20px;text-align:left;width:80%;max-height:120px;overflow-y:auto;}
+.confetti{position:absolute;width:100%;height:100%;pointer-events:none;top:0;left:0;}
 
-.container {
-    width: 1024px;
-    height: 768px;
-    background: white;
-    border-radius: 24px;
-    padding: 30px;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.08);
-    display:flex;
-    flex-direction: column;
-    align-items: center;
-    overflow: hidden;
-    position: relative;
-}
-
-h1,h2,h3 { margin: 10px 0; }
-button {
-    font-size: 28px;
-    padding: 20px 40px;
-    margin: 10px;
-    border-radius: 16px;
-    border: none;
-    cursor: pointer;
-    background: black;
-    color: white;
-}
-button.secondary { background:#ddd; color:black; }
-
-.grid { display:flex; gap:20px; flex-wrap:wrap; justify-content:center; }
-.machine-btn { padding:40px 60px; font-size:32px; border-radius:20px; cursor:pointer; }
-.keypad { display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; margin-top:10px; }
-.keypad button { width:100px; height:100px; font-size:36px; }
-#code-display, #sets-display, #reps-display, #weight-display { font-size:48px; letter-spacing:16px; margin:10px 0; text-align:center; }
-
-/* Pages */
-.page { display:none; width:100%; height:100%; flex-direction:column; align-items:center; justify-content:center; }
-.page.active { display:flex; }
-
-.input-group { margin:10px 0; width:80%; text-align:center; }
-.numeric-input { display:flex; flex-direction:column; align-items:center; }
-.numeric-input .keypad { margin-top:10px; }
+/* ===== CONFETTI ===== */
+.confetti-piece{position:absolute;width:10px;height:10px;background:gold;opacity:0.8;animation:fall 2s linear forwards;}
+@keyframes fall{0%{transform:translateY(0) rotate(0deg);}100%{transform:translateY(700px) rotate(720deg);opacity:0;}}
 </style>
 </head>
 <body>
-
 <div class="container">
 
-    <!-- Machine Select Page -->
-    <div id="page-machine" class="page active">
-        <h1>Select Machine</h1>
-        <div class="grid">
-            <button class="machine-btn" onclick="selectMachine('Leg Press')">Leg Press</button>
-            <button class="machine-btn" onclick="selectMachine('Bench Press')">Bench Press</button>
-            <button class="machine-btn" onclick="selectMachine('Lat Pulldown')">Lat Pulldown</button>
-        </div>
+<!-- MACHINE SELECT PAGE -->
+<div id="page-machine" class="page active">
+    <h1>Select Machine</h1>
+    <div class="grid">
+        <button class="machine-btn" onclick="selectMachine('Leg Press','leg_press.gif')">Leg Press</button>
+        <button class="machine-btn" onclick="selectMachine('Bench Press','bench_press.gif')">Bench Press</button>
+        <button class="machine-btn" onclick="selectMachine('Lat Pulldown','lat_pulldown.gif')">Lat Pulldown</button>
     </div>
-
-    <!-- Login Page -->
-    <div id="page-login" class="page">
-        <h1>Enter 4-Digit Code</h1>
-        <div id="code-display">••••</div>
-        <div class="keypad" id="login-keypad"></div>
-    </div>
-
-    <!-- Workout Page -->
-    <div id="page-workout" class="page">
-        <h1 id="welcome"></h1>
-        <h2 id="machine-name"></h2>
-
-        <div class="input-group">
-            <label>Sets:</label>
-            <div class="numeric-input">
-                <div id="sets-display">0</div>
-                <div class="keypad" id="sets-keypad"></div>
-            </div>
-        </div>
-
-        <div class="input-group">
-            <label>Reps:</label>
-            <div class="numeric-input">
-                <div id="reps-display">0</div>
-                <div class="keypad" id="reps-keypad"></div>
-            </div>
-        </div>
-
-        <div class="input-group">
-            <label>Weight (lbs):</label>
-            <div class="numeric-input">
-                <div id="weight-display">0</div>
-                <div class="keypad" id="weight-keypad"></div>
-            </div>
-        </div>
-
-        <h3>1-Rep Max: <span id="oneRM">0</span> lbs</h3>
-        <button onclick="saveWorkout()">Save Workout</button>
-        <button onclick="logout()" class="secondary">Log Out</button>
-    </div>
-
+    <img id="machine-gif" src="" alt="Machine Preview">
 </div>
 
+<!-- LOGIN PAGE -->
+<div id="page-login" class="page">
+    <h1>Enter 4-Digit Code</h1>
+    <div id="code-display">••••</div>
+    <div class="keypad" id="login-keypad"></div>
+</div>
+
+<!-- WORKOUT PAGE -->
+<div id="page-workout" class="page">
+    <h1 id="welcome"></h1>
+    <h2 id="machine-name"></h2>
+
+    <div class="input-group">
+        <label>Sets:</label>
+        <div class="numeric-input">
+            <div id="sets-display">0</div>
+            <div class="keypad" id="sets-keypad"></div>
+        </div>
+    </div>
+    <div class="input-group">
+        <label>Reps:</label>
+        <div class="numeric-input">
+            <div id="reps-display">0</div>
+            <div class="keypad" id="reps-keypad"></div>
+        </div>
+    </div>
+    <div class="input-group">
+        <label>Weight (lbs):</label>
+        <div class="numeric-input">
+            <div id="weight-display">0</div>
+            <div class="keypad" id="weight-keypad"></div>
+        </div>
+    </div>
+
+    <h3>1-Rep Max: <span id="oneRM">0</span> lbs</h3>
+    <h4>Est. Calories Burned: <span id="calories">0</span></h4>
+
+    <button onclick="saveWorkout()">Save Workout</button>
+    <button onclick="logout()" class="secondary">Log Out</button>
+
+    <div id="workout-history"></div>
+</div>
+
+<div class="confetti" id="confetti-container"></div>
+
 <script>
-// ---------- Global ----------
-let selectedMachine = "";
-let enteredCode = "";
-const validCodes = { "1234": "Abil", "5678": "Maxwell" };
-let userName = "";
+// ===== GLOBAL =====
+let selectedMachine="", machineGif="", enteredCode="", userName="";
+const validCodes={"1234":"Abil","5678":"Maxwell"};
+const googleSheetURL="https://script.google.com/macros/s/AKfycbyLuqCOn_pvN4Vg6ttQzq1jmZ58Kn79gau3rZ3DpDXD5vWpMO683VsYKMn7xfeleWhfoA/exec";
 
-// ---------- Page Control ----------
-function showPage(pageId) {
-    document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
-    document.getElementById(pageId).classList.add("active");
+// ===== PAGE CONTROL =====
+function showPage(id){document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));document.getElementById(id).classList.add("active");}
+
+// ===== MACHINE SELECT =====
+function selectMachine(machine,gif){selectedMachine=machine; machineGif=gif; document.getElementById("machine-gif").src=gif; showPage("page-login"); initLoginKeypad();}
+
+// ===== LOGIN =====
+function initLoginKeypad(){
+    const k=document.getElementById("login-keypad"); k.innerHTML="";
+    for(let i=1;i<=9;i++){const b=document.createElement("button");b.textContent=i;b.onclick=()=>{enterDigit(i)};k.appendChild(b);}
+    const clearBtn=document.createElement("button"); clearBtn.textContent="⌫"; clearBtn.onclick=()=>{clearCode()}; k.appendChild(clearBtn);
+    const zeroBtn=document.createElement("button"); zeroBtn.textContent="0"; zeroBtn.onclick=()=>{enterDigit(0)}; k.appendChild(zeroBtn);
+    const okBtn=document.createElement("button"); okBtn.textContent="✔"; okBtn.onclick=()=>{login()}; k.appendChild(okBtn);
+}
+function enterDigit(d){if(enteredCode.length<4){enteredCode+=d; updateCodeDisplay();}}
+function clearCode(){enteredCode=""; updateCodeDisplay();}
+function updateCodeDisplay(){document.getElementById("code-display").textContent=enteredCode.padEnd(4,"•");}
+function login(){
+    if(enteredCode.length<4){alert("Enter 4 digits!");return;}
+    if(validCodes[enteredCode]){userName=validCodes[enteredCode]; showPage("page-workout"); initWorkout();} else {alert("Invalid code!"); clearCode();}
 }
 
-// ---------- Machine Selection ----------
-function selectMachine(machine) {
-    selectedMachine = machine;
-    showPage("page-login");
-    initLoginKeypad();
-}
-
-// ---------- Login ----------
-function initLoginKeypad() {
-    const keypad = document.getElementById("login-keypad");
-    keypad.innerHTML = "";
-    for(let i=1;i<=9;i++) {
-        const btn=document.createElement("button");
-        btn.textContent=i;
-        btn.onclick=()=>{ enterDigit(i); };
-        keypad.appendChild(btn);
-    }
-    const clearBtn = document.createElement("button");
-    clearBtn.textContent="⌫"; clearBtn.onclick=()=>{ clearCode(); };
-    keypad.appendChild(clearBtn);
-    const zeroBtn = document.createElement("button");
-    zeroBtn.textContent="0"; zeroBtn.onclick=()=>{ enterDigit(0); };
-    keypad.appendChild(zeroBtn);
-    const okBtn = document.createElement("button");
-    okBtn.textContent="✔"; okBtn.onclick=()=>{ login(); };
-    keypad.appendChild(okBtn);
-}
-
-function enterDigit(d) {
-    if(enteredCode.length<4){ enteredCode+=d; updateCodeDisplay(); }
-}
-function clearCode(){ enteredCode=""; updateCodeDisplay(); }
-function updateCodeDisplay(){ document.getElementById("code-display").textContent=enteredCode.padEnd(4,"•"); }
-function login() {
-    if(enteredCode.length<4){ alert("Enter 4 digits!"); return; }
-    if(validCodes[enteredCode]){
-        userName = validCodes[enteredCode];
-        showPage("page-workout");
-        initWorkout();
-    } else { alert("Invalid code!"); clearCode(); }
-}
-
-// ---------- Workout ----------
-function initWorkout() {
+// ===== WORKOUT =====
+function initWorkout(){
     document.getElementById("welcome").textContent=`Hi, ${userName}`;
     document.getElementById("machine-name").textContent=selectedMachine;
-
-    createKeypad("sets");
-    createKeypad("reps");
-    createKeypad("weight");
-    update1RM();
+    createKeypad("sets"); createKeypad("reps"); createKeypad("weight");
+    updateMetrics(); loadHistory();
 }
-
 function createKeypad(field){
-    const keypadContainer=document.getElementById(field+"-keypad");
-    const display=document.getElementById(field+"-display");
-    keypadContainer.innerHTML="";
-    for(let i=1;i<=9;i++){
-        const btn=document.createElement("button");
-        btn.textContent=i;
-        btn.onclick=()=>{ display.textContent=display.textContent==="0"?i:display.textContent+i; update1RM(); };
-        keypadContainer.appendChild(btn);
-    }
-    const zeroBtn=document.createElement("button");
-    zeroBtn.textContent="0"; zeroBtn.onclick=()=>{ display.textContent=display.textContent==="0"?"0":display.textContent+"0"; update1RM(); };
-    keypadContainer.appendChild(zeroBtn);
-    const clearBtn=document.createElement("button");
-    clearBtn.textContent="⌫"; clearBtn.onclick=()=>{ display.textContent="0"; update1RM(); };
-    keypadContainer.appendChild(clearBtn);
+    const k=document.getElementById(field+"-keypad"); const d=document.getElementById(field+"-display"); k.innerHTML="";
+    for(let i=1;i<=9;i++){const b=document.createElement("button"); b.textContent=i; b.onclick=()=>{d.textContent=d.textContent==="0"?i:d.textContent+i; updateMetrics();}; k.appendChild(b);}
+    const zero=document.createElement("button"); zero.textContent="0"; zero.onclick=()=>{d.textContent=d.textContent==="0"?"0":d.textContent+"0"; updateMetrics();}; k.appendChild(zero);
+    const clear=document.createElement("button"); clear.textContent="⌫"; clear.onclick=()=>{d.textContent="0"; updateMetrics();}; k.appendChild(clear);
 }
-
-function update1RM(){
+function updateMetrics(){
     const sets=parseInt(document.getElementById("sets-display").textContent)||0;
     const reps=parseInt(document.getElementById("reps-display").textContent)||0;
     const weight=parseFloat(document.getElementById("weight-display").textContent)||0;
     const oneRM=Math.round(weight*(1+reps/30));
+    const calories=Math.round(sets*reps*weight*0.1);
     document.getElementById("oneRM").textContent=oneRM||0;
+    document.getElementById("calories").textContent=calories||0;
 }
 
-// ---------- Save Workout ----------
+// ===== SAVE WORKOUT =====
 function saveWorkout(){
     const sets=parseInt(document.getElementById("sets-display").textContent);
     const reps=parseInt(document.getElementById("reps-display").textContent);
     const weight=parseFloat(document.getElementById("weight-display").textContent);
+    if(sets<=0||reps<=0||weight<=0){alert("Enter valid values!"); return;}
     const oneRM=Math.round(weight*(1+reps/30));
-    if(sets<=0 || reps<=0 || weight<=0){ alert("Enter valid values!"); return; }
+    const calories=Math.round(sets*reps*weight*0.1);
+    const payload={user:userName,machine:selectedMachine,sets,reps,weight,oneRM,calories,date:new Date().toLocaleString()};
 
-    const payload={ user:userName, machine:selectedMachine, sets, reps, weight, oneRM, date:new Date().toLocaleString() };
-
-    fetch("https://script.google.com/macros/s/AKfycbyLuqCOn_pvN4Vg6ttQzq1jmZ58Kn79gau3rZ3DpDXD5vWpMO683VsYKMn7xfeleWhfoA/exec",{
-        method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload)
-    }).then(res=>res.json())
-      .then(data=>{ alert("Workout saved!"); resetInputs(); })
-      .catch(err=>alert("Error sending data"));
+    fetch(googleSheetURL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)})
+    .then(res=>res.json()).then(d=>{alert("Workout saved!");checkPR(oneRM);resetInputs(); loadHistory();})
+    .catch(e=>alert("Error sending data"));
 }
 
 function resetInputs(){
     document.getElementById("sets-display").textContent="0";
     document.getElementById("reps-display").textContent="0";
     document.getElementById("weight-display").textContent="0";
-    update1RM();
+    updateMetrics();
 }
 
-function logout(){
-    enteredCode=""; userName=""; selectedMachine="";
-    showPage("page-machine");
+// ===== LOAD HISTORY (Local fallback) =====
+function loadHistory(){
+    const h=document.getElementById("workout-history");
+    h.innerHTML="";
+    const key=`history_${userName}_${selectedMachine}`;
+    let history=JSON.parse(localStorage.getItem(key))||[];
+    if(history.length>0){h.innerHTML="<strong>Last Workouts:</strong><br>"; history.slice(-3).reverse().forEach(item=>{h.innerHTML+=`${item.date}: ${item.sets}x${item.reps} @ ${item.weight}lbs<br>`;});}
 }
+
+// ===== PR CONFETTI =====
+function checkPR(new1RM){
+    const key=`history_${userName}_${selectedMachine}`;
+    let history=JSON.parse(localStorage.getItem(key))||[];
+    let pr=Math.max(...history.map(h=>h.oneRM),0);
+    if(new1RM>pr){triggerConfetti();}
+    history.push({sets:parseInt(document.getElementById("sets-display").textContent),reps:parseInt(document.getElementById("reps-display").textContent),weight:parseFloat(document.getElementById("weight-display").textContent),oneRM:new1RM,date:new Date().toLocaleString()});
+    localStorage.setItem(key,JSON.stringify(history));
+}
+
+function triggerConfetti(){
+    const container=document.getElementById("confetti-container");
+    for(let i=0;i<100;i++){
+        const div=document.createElement("div");
+        div.className="confetti-piece";
+        div.style.left=Math.random()*100+"%";
+        div.style.background=`hsl(${Math.random()*360},100%,50%)`;
+        container.appendChild(div);
+        setTimeout(()=>{div.remove();},2000);
+    }
+}
+
+// ===== LOGOUT =====
+function logout(){enteredCode="";userName="";selectedMachine="";showPage("page-machine");document.getElementById("machine-gif").src="";}
 </script>
 </body>
 </html>
